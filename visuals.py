@@ -247,8 +247,8 @@ def printComponentStatistics():
 
 
 
-like_files = glob('images/like/Image*')
-dislike_files = glob('images/dislike/Image*')
+like_files = glob('images/like/*')
+dislike_files = glob('images/dislike/*')
 
 process_file = img_to_array
 
