@@ -20,7 +20,7 @@ N_DRESSES_TO_SHOW = 5
 N_NEW_DRESSES_TO_CREATE = 20
 
 # this is the size of all the Amazon.com images
-# If you are using a different source, change the size here 
+# If you are using a different source, change the size here
 STANDARD_SIZE = (200,260)
 
 def img_to_array(filename):
@@ -45,7 +45,7 @@ def createEigendressPictures():
     print("creating eigendress pictures")
     directory = "results/eigendresses/"
     makeFolder(directory)
-    for i in range(N_COMPONENTS_TO_SHOW):
+    for i in range(min(N_COMPONENTS_TO_SHOW, numComponents)):
         component = pca.components_[i]
         img = image_from_component_values(component)
         img.save(directory + str(i) + "_eigendress___.png")
@@ -65,91 +65,92 @@ def indexesForImageName(imageName):
     return [i for (i,(cd,_y,f)) in enumerate(raw_data) if imageName in f]
 
 def predictiveModeling():
-    print("logistic regression...")
-    directory = "results/notableDresses/"
-    makeFolder(directory)
+    print("training a predictive model...")
+    try:
+        # split the data into a training set and a test set
+        train_split = int(len(data) * 4.0 / 5.0)
 
-    # split the data into a training set and a test set
-    train_split = int(len(data) * 4.0 / 5.0)
+        X_train = X[:train_split]
+        X_test = X[train_split:]
+        y_train = y[:train_split]
+        y_test = y[train_split:]
 
-    X_train = X[:train_split]
-    X_test = X[train_split:]
-    y_train = y[:train_split]
-    y_test = y[train_split:]
+        # if you wanted to use a different model, you'd specify that here
+        clf = LogisticRegression(penalty='l2')
+        clf.fit(X_train,y_train)
 
-    # if you wanted to use a different model, you'd specify that here
-    clf = LogisticRegression(penalty='l2')
-    clf.fit(X_train,y_train)
+        print "score",clf.score(X_test,y_test)
 
-    print "score",clf.score(X_test,y_test)
-        
-    # first, let's find the model score for every dress in our dataset
-    probs = zip(clf.decision_function(X),raw_data)
+        # first, let's find the model score for every dress in our dataset
+        probs = zip(clf.decision_function(X),raw_data)
 
-    prettiest_liked_things = sorted(probs,key=lambda (p,(cd,g,f)): (0 if g == 'like' else 1,p))
-    prettiest_disliked_things = sorted(probs,key=lambda (p,(cd,g,f)): (0 if g == 'dislike' else 1,p))
-    ugliest_liked_things = sorted(probs,key=lambda (p,(cd,g,f)): (0 if g == 'like' else 1,-p))
-    ugliest_disliked_things = sorted(probs,key=lambda (p,(cd,g,f)): (0 if g == 'dislike' else 1,-p))
-    in_between_things = sorted(probs,key=lambda (p,(cd,g,f)): abs(p))
+        prettiest_liked_things = sorted(probs,key=lambda (p,(cd,g,f)): (0 if g == 'like' else 1,p))
+        prettiest_disliked_things = sorted(probs,key=lambda (p,(cd,g,f)): (0 if g == 'dislike' else 1,p))
+        ugliest_liked_things = sorted(probs,key=lambda (p,(cd,g,f)): (0 if g == 'like' else 1,-p))
+        ugliest_disliked_things = sorted(probs,key=lambda (p,(cd,g,f)): (0 if g == 'dislike' else 1,-p))
+        in_between_things = sorted(probs,key=lambda (p,(cd,g,f)): abs(p))
 
-    # and let's look at the most and least extreme dresses
-    cd = zip(X,raw_data)
-    least_extreme_things = sorted(cd,key=lambda (x,(d,g,f)): sum([abs(c) for c in x]))
-    most_extreme_things =  sorted(cd,key=lambda (x,(d,g,f)): sum([abs(c) for c in x]),reverse=True)
+        # and let's look at the most and least extreme dresses
+        cd = zip(X,raw_data)
+        least_extreme_things = sorted(cd,key=lambda (x,(d,g,f)): sum([abs(c) for c in x]))
+        most_extreme_things =  sorted(cd,key=lambda (x,(d,g,f)): sum([abs(c) for c in x]),reverse=True)
 
-    least_interesting_things = sorted(cd,key=lambda (x,(d,g,f)): max([abs(c) for c in x]))
-    most_interesting_things =  sorted(cd,key=lambda (x,(d,g,f)): min([abs(c) for c in x]),reverse=True)
+        least_interesting_things = sorted(cd,key=lambda (x,(d,g,f)): max([abs(c) for c in x]))
+        most_interesting_things =  sorted(cd,key=lambda (x,(d,g,f)): min([abs(c) for c in x]),reverse=True)
 
-    for i in range(10):
-        Image.open(prettiest_liked_things[i][1][2]).save(directory + "prettiest_pretty_" + str(i) + ".png")
-        Image.open(prettiest_disliked_things[i][1][2]).save(directory + "prettiest_ugly_" + str(i) + ".png")
-        Image.open(ugliest_liked_things[i][1][2]).save(directory + "ugliest_pretty_" + str(i) + ".png")
-        Image.open(ugliest_disliked_things[i][1][2]).save(directory + "directoryugliest_ugly_" + str(i) + ".png")
-        Image.open(in_between_things[i][1][2]).save(directory + "neither_pretty_nor_ugly_" + str(i) + ".png")
-        Image.open(least_extreme_things[i][1][2]).save(directory + "least_extreme_" + str(i) + ".png")
-        Image.open(most_extreme_things[i][1][2]).save(directory + "most_extreme_" + str(i) + ".png")
-        Image.open(least_interesting_things[i][1][2]).save(directory + "least_interesting_" + str(i) + ".png")
-        Image.open(most_interesting_things[i][1][2]).save(directory + "most_interesting_" + str(i) + ".png")
+        directory = "results/notableDresses/"
+        makeFolder(directory)
 
-    # and now let's look at precision-recall
-    probs = zip(clf.decision_function(X_test),raw_data[train_split:])
-    num_dislikes = len([c for c in y_test if c == 1])
-    num_likes = len([c for c in y_test if c == 0])
-    lowest_score = round(min([p[0] for p in probs]),1) - 0.1
-    highest_score = round(max([p[0] for p in probs]),1) + 0.1
-    INTERVAL = 0.1
+        for i in range(min(N_COMPONENTS_TO_SHOW, numComponents)):
+            Image.open(prettiest_liked_things[i][1][2]).save(directory + "prettiest_pretty_" + str(i) + ".png")
+            Image.open(prettiest_disliked_things[i][1][2]).save(directory + "prettiest_ugly_" + str(i) + ".png")
+            Image.open(ugliest_liked_things[i][1][2]).save(directory + "ugliest_pretty_" + str(i) + ".png")
+            Image.open(ugliest_disliked_things[i][1][2]).save(directory + "directoryugliest_ugly_" + str(i) + ".png")
+            Image.open(in_between_things[i][1][2]).save(directory + "neither_pretty_nor_ugly_" + str(i) + ".png")
+            Image.open(least_extreme_things[i][1][2]).save(directory + "least_extreme_" + str(i) + ".png")
+            Image.open(most_extreme_things[i][1][2]).save(directory + "most_extreme_" + str(i) + ".png")
+            Image.open(least_interesting_things[i][1][2]).save(directory + "least_interesting_" + str(i) + ".png")
+            Image.open(most_interesting_things[i][1][2]).save(directory + "most_interesting_" + str(i) + ".png")
 
-    # first do the likes
-    score = lowest_score
-    while score <= highest_score:
-        true_positives  = len([p for p in probs if p[0] <= score and p[1][1] == 'like'])
-        false_positives = len([p for p in probs if p[0] <= score and p[1][1] == 'dislike'])
-        positives = true_positives + false_positives
-        if positives > 0:
-            precision = 1.0 * true_positives / positives
-            recall = 1.0 * true_positives / num_likes
+        # and now let's look at precision-recall
+        probs = zip(clf.decision_function(X_test),raw_data[train_split:])
+        num_dislikes = len([c for c in y_test if c == 1])
+        num_likes = len([c for c in y_test if c == 0])
+        lowest_score = round(min([p[0] for p in probs]),1) - 0.1
+        highest_score = round(max([p[0] for p in probs]),1) + 0.1
+        INTERVAL = 0.1
+
+        # first do the likes
+        score = lowest_score
+        while score <= highest_score:
+            true_positives  = len([p for p in probs if p[0] <= score and p[1][1] == 'like'])
+            false_positives = len([p for p in probs if p[0] <= score and p[1][1] == 'dislike'])
+            positives = true_positives + false_positives
+            precision = np.float64(1.0 * true_positives) / positives
+            recall = np.float64(1.0 * true_positives) / num_likes
             print "likes",score,precision,recall
-        score += INTERVAL
+            score += INTERVAL
 
-    # then do the dislikes
-    score = highest_score
-    while score >= lowest_score:
-        true_positives  = len([p for p in probs if p[0] >= score and p[1][1] == 'dislike'])
-        false_positives = len([p for p in probs if p[0] >= score and p[1][1] == 'like'])
-        positives = true_positives + false_positives
-        if positives > 0:
-            precision = 1.0 * true_positives / positives
-            recall = 1.0 * true_positives / num_dislikes
+        # then do the dislikes
+        score = highest_score
+        while score >= lowest_score:
+            true_positives  = len([p for p in probs if p[0] >= score and p[1][1] == 'dislike'])
+            false_positives = len([p for p in probs if p[0] >= score and p[1][1] == 'like'])
+            positives = true_positives + false_positives
+            precision = np.float64(1.0 * true_positives) / positives
+            recall = np.float64(1.0 * true_positives) / num_dislikes
             print "dislikes",score,precision,recall
-        score -= INTERVAL
+            score -= INTERVAL
 
-    # now do both
-    score = lowest_score
-    while score <= highest_score:
-        likes  = len([p for p in probs if p[0] <= score and p[1][1] == 'like'])
-        dislikes = len([p for p in probs if p[0] <= score and p[1][1] == 'dislike'])
-        print score, likes, dislikes
-        score += INTERVAL
+        # now do both
+        score = lowest_score
+        while score <= highest_score:
+            likes  = len([p for p in probs if p[0] <= score and p[1][1] == 'like'])
+            dislikes = len([p for p in probs if p[0] <= score and p[1][1] == 'dislike'])
+            print score, likes, dislikes
+            score += INTERVAL
+    except:
+        print("the model could not be trained.")
 
 def showHistoryOfDress(dressName):
     index = indexesForImageName(dressName)[0]
@@ -180,7 +181,7 @@ def reconstruct(dress_number, saveName = 'reconstruct'):
 def construct(eigenvalues, saveName = 'reconstruct'):
     components = pca.components_
     eigenzip = zip(eigenvalues,components)
-    N = len(components[0])   
+    N = len(components[0])
     r = [int(sum([w * c[i] for (w,c) in eigenzip]))
                      for i in range(N)]
     img = image_from_component_values(r)
@@ -220,7 +221,7 @@ def reconstructKnownDresses():
     makeFolder(directory)
     for i in range(N_DRESSES_TO_SHOW):
         Image.open(raw_data[i][2]).save(directory + str(i) + "_original.png")
-        saveName = directory + str(i) 
+        saveName = directory + str(i)
         reconstruct(i, saveName)
 
 def createNewDresses():
@@ -235,7 +236,7 @@ def createNewDresses():
 
 def printComponentStatistics():
     print("component statistics:\n")
-    for i in range(N_COMPONENTS_TO_SHOW):
+    for i in range(min(N_COMPONENTS_TO_SHOW, numComponents, len(likesByComponent), len(dislikesByComponent))):
         print("component " + str(i) + ":")
         likeComp = likesByComponent[i]
         dislikeComp = dislikesByComponent[i]
@@ -247,15 +248,17 @@ def printComponentStatistics():
 
 
 
-like_files = glob('images/like/Image*')
-dislike_files = glob('images/dislike/Image*')
+like_files = glob('images/like/*')
+dislike_files = glob('images/dislike/*')
+other_files = glob('images/other/*')
 
 process_file = img_to_array
 
 print('processing images...')
 print('(this takes a long time if you have a lot of images)')
 raw_data = [(process_file(filename),'like',filename) for filename in like_files] + \
-           [(process_file(filename),'dislike',filename) for filename in dislike_files]
+           [(process_file(filename),'dislike',filename) for filename in dislike_files] + \
+           [(process_file(filename),'other',filename) for filename in other_files]
 
 # randomly order the data
 #seed(0)
@@ -277,8 +280,7 @@ dislikes = [x[0] for x in zipped if x[1][1] == "dislike"]
 likesByComponent = zip(*likes)
 dislikesByComponent = zip(*dislikes)
 allByComponent = zip(*X)
-
-
+numComponents = min(N_COMPONENTS, len(pca.components_))
 
 printComponentStatistics()
 
