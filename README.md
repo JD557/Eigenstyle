@@ -8,14 +8,16 @@ This repo might differ a lot from the original, as I want to make some experimen
 Differences from the original repo
 ----------------------------------
 
-None (yet).
+- Training image names do not need to be prefixed by `Image`.
+- Added an `other` folder where you can dump images to train only the principal components.
+- Improved support for small datasets.
 
 To Use
 ------
 
-- Find a bunch of images (I used images of dresses from Amazon).
-- Put the ones that match your style in the "like" folder, and the others in the "dislike" folder
-- In terminal, run 
+- Find a bunch of images.
+- Put the ones you like in the "like" folder, the ones you dislike in the "dislike" folder and everything else in the "other" folder.
+- In terminal, run
 ```bash
 python visuals.py
 ```
