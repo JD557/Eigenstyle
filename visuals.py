@@ -20,7 +20,7 @@ N_DRESSES_TO_SHOW = 5
 N_NEW_DRESSES_TO_CREATE = 20
 
 # this is the size of all the Amazon.com images
-# If you are using a different source, change the size here 
+# If you are using a different source, change the size here
 STANDARD_SIZE = (200,260)
 
 def img_to_array(filename):
@@ -82,7 +82,7 @@ def predictiveModeling():
     clf.fit(X_train,y_train)
 
     print "score",clf.score(X_test,y_test)
-        
+
     # first, let's find the model score for every dress in our dataset
     probs = zip(clf.decision_function(X),raw_data)
 
@@ -180,7 +180,7 @@ def reconstruct(dress_number, saveName = 'reconstruct'):
 def construct(eigenvalues, saveName = 'reconstruct'):
     components = pca.components_
     eigenzip = zip(eigenvalues,components)
-    N = len(components[0])   
+    N = len(components[0])
     r = [int(sum([w * c[i] for (w,c) in eigenzip]))
                      for i in range(N)]
     img = image_from_component_values(r)
@@ -220,7 +220,7 @@ def reconstructKnownDresses():
     makeFolder(directory)
     for i in range(N_DRESSES_TO_SHOW):
         Image.open(raw_data[i][2]).save(directory + str(i) + "_original.png")
-        saveName = directory + str(i) 
+        saveName = directory + str(i)
         reconstruct(i, saveName)
 
 def createNewDresses():

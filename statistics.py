@@ -5,7 +5,7 @@ import math
 
 # The following methods are from Joel Grus
 # https://github.com/joelgrus/data-science-from-scratch
-def mean(x): 
+def mean(x):
     return sum(x) / (len(x) * 1.0)
 
 def median(v):
@@ -21,7 +21,7 @@ def median(v):
         lo = midpoint - 1
         hi = midpoint
         return (sorted_v[lo] + sorted_v[hi]) / 2
-        
+
 def data_range(x):
     return max(x) - min(x)
 
@@ -35,7 +35,7 @@ def variance(x):
     n = len(x)
     deviations = de_mean(x)
     return sum_of_squares(deviations) / (n - 1)
-    
+
 def standard_deviation(x):
     return math.sqrt(variance(x))
 
@@ -56,7 +56,7 @@ def sum_of_squares(v):
     return dot(v, v)
 
 def normal_cdf(x, mu=0,sigma=1):
-    return (1 + math.erf((x - mu) / math.sqrt(2) / sigma)) / 2  
+    return (1 + math.erf((x - mu) / math.sqrt(2) / sigma)) / 2
 
 def inverse_normal_cdf(p, mu=0, sigma=1, tolerance=0.00001):
     """find approximate inverse using binary search"""
