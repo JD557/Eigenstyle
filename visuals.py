@@ -249,13 +249,15 @@ def printComponentStatistics():
 
 like_files = glob('images/like/*')
 dislike_files = glob('images/dislike/*')
+other_files = glob('images/other/*')
 
 process_file = img_to_array
 
 print('processing images...')
 print('(this takes a long time if you have a lot of images)')
 raw_data = [(process_file(filename),'like',filename) for filename in like_files] + \
-           [(process_file(filename),'dislike',filename) for filename in dislike_files]
+           [(process_file(filename),'dislike',filename) for filename in dislike_files] + \
+           [(process_file(filename),'other',filename) for filename in other_files]
 
 # randomly order the data
 #seed(0)
