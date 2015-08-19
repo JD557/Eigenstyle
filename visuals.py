@@ -45,7 +45,7 @@ def createEigendressPictures():
     print("creating eigendress pictures")
     directory = "results/eigendresses/"
     makeFolder(directory)
-    for i in range(N_COMPONENTS_TO_SHOW):
+    for i in range(min(N_COMPONENTS_TO_SHOW, numComponents)):
         component = pca.components_[i]
         img = image_from_component_values(component)
         img.save(directory + str(i) + "_eigendress___.png")
@@ -100,7 +100,7 @@ def predictiveModeling():
     least_interesting_things = sorted(cd,key=lambda (x,(d,g,f)): max([abs(c) for c in x]))
     most_interesting_things =  sorted(cd,key=lambda (x,(d,g,f)): min([abs(c) for c in x]),reverse=True)
 
-    for i in range(10):
+    for i in range(min(N_COMPONENTS_TO_SHOW, numComponents)):
         Image.open(prettiest_liked_things[i][1][2]).save(directory + "prettiest_pretty_" + str(i) + ".png")
         Image.open(prettiest_disliked_things[i][1][2]).save(directory + "prettiest_ugly_" + str(i) + ".png")
         Image.open(ugliest_liked_things[i][1][2]).save(directory + "ugliest_pretty_" + str(i) + ".png")
@@ -125,10 +125,9 @@ def predictiveModeling():
         true_positives  = len([p for p in probs if p[0] <= score and p[1][1] == 'like'])
         false_positives = len([p for p in probs if p[0] <= score and p[1][1] == 'dislike'])
         positives = true_positives + false_positives
-        if positives > 0:
-            precision = 1.0 * true_positives / positives
-            recall = 1.0 * true_positives / num_likes
-            print "likes",score,precision,recall
+        precision = np.float64(1.0 * true_positives) / positives
+        recall = np.float64(1.0 * true_positives) / num_likes
+        print "likes",score,precision,recall
         score += INTERVAL
 
     # then do the dislikes
@@ -137,10 +136,9 @@ def predictiveModeling():
         true_positives  = len([p for p in probs if p[0] >= score and p[1][1] == 'dislike'])
         false_positives = len([p for p in probs if p[0] >= score and p[1][1] == 'like'])
         positives = true_positives + false_positives
-        if positives > 0:
-            precision = 1.0 * true_positives / positives
-            recall = 1.0 * true_positives / num_dislikes
-            print "dislikes",score,precision,recall
+        precision = np.float64(1.0 * true_positives) / positives
+        recall = np.float64(1.0 * true_positives) / num_dislikes
+        print "dislikes",score,precision,recall
         score -= INTERVAL
 
     # now do both
@@ -235,7 +233,7 @@ def createNewDresses():
 
 def printComponentStatistics():
     print("component statistics:\n")
-    for i in range(N_COMPONENTS_TO_SHOW):
+    for i in range(min(N_COMPONENTS_TO_SHOW, numComponents)):
         print("component " + str(i) + ":")
         likeComp = likesByComponent[i]
         dislikeComp = dislikesByComponent[i]
@@ -279,8 +277,7 @@ dislikes = [x[0] for x in zipped if x[1][1] == "dislike"]
 likesByComponent = zip(*likes)
 dislikesByComponent = zip(*dislikes)
 allByComponent = zip(*X)
-
-
+numComponents = min(N_COMPONENTS, len(pca.components_))
 
 printComponentStatistics()
 
