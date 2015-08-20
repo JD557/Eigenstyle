@@ -11,6 +11,7 @@ Differences from the original repo
 - Training image names do not need to be prefixed by `Image`.
 - Added an `other` folder where you can dump images to train only the principal components.
 - Improved support for small datasets.
+- Add support for multiple colorspaces: RGB, BW (naive), BW (BT.709 Luma) and CIE XYZ.
 
 To Use
 ------
