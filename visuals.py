@@ -14,24 +14,90 @@ import random
 import os
 from statistics import mean, median, standard_deviation, inverse_normal_cdf, interquartile_range
 
+class RgbConverter:
+
+    internalMode = "RGB"
+
+    @staticmethod
+    def apply(img):
+        return img
+
+    @staticmethod
+    def unapply(img):
+        return img
+
+class BwNaiveConverter:
+
+    internalMode = "RGB"
+
+    @staticmethod
+    def apply(img):
+        rgb2bw = (
+            0.33, 0.33, 0.33, 0,
+            0.33, 0.33, 0.33, 0,
+            0.33, 0.33, 0.33, 0 )
+        return img.convert("RGB", rgb2bw)
+
+    @staticmethod
+    def unapply(img):
+        return img
+
+class BwLumaConverter:
+
+    internalMode = "RGB"
+
+    @staticmethod
+    def apply(img):
+        rgb2bw = (
+            0.299, 0.587, 0.114, 0,
+            0.299, 0.587, 0.114, 0,
+            0.299, 0.587, 0.114, 0 )
+        return img.convert("RGB", rgb2bw)
+
+    @staticmethod
+    def unapply(img):
+        return img
+
+class XyzConverter:
+
+    internalMode = "RGB"
+
+    @staticmethod
+    def apply(img):
+        rgb2xyz = (
+            0.412453, 0.357580, 0.180423, 0,
+            0.212671, 0.715160, 0.072169, 0,
+            0.019334, 0.119193, 0.950227, 0 )
+        return img.convert("RGB", rgb2xyz)
+
+    @staticmethod
+    def unapply(img):
+        xyz2rgb = (
+            3.24048, -1.53715, -0.498536, 0,
+            -0.969255, 1.87599, 0.0415559, 0,
+            0.0556466, 0.204041, 1.05731, 0 )
+        return img.convert("RGB", xyz2rgb)
+
 N_COMPONENTS = 50
 N_COMPONENTS_TO_SHOW = 10
 N_DRESSES_TO_SHOW = 5
 N_NEW_DRESSES_TO_CREATE = 20
+CONVERTER = BwLumaConverter()
 
 # this is the size of all the Amazon.com images
 # If you are using a different source, change the size here
-STANDARD_SIZE = (200,260)
+STANDARD_SIZE = (200, 260)
 
 def img_to_array(filename):
     """takes a filename and turns it into a numpy array of RGB pixels"""
     img = Image.open(filename)
     img = img.resize(STANDARD_SIZE)
+    img = CONVERTER.apply(img)
     img = list(img.getdata())
     img = map(list, img)
     img = np.array(img)
-    s = img.shape[0] * img.shape[1]
-    img_wide = img.reshape(1, s)
+    shape = img.shape[0] * img.shape[1]
+    img_wide = img.reshape(1, shape)
     return img_wide[0]
 
 def makeFolder(directory):
@@ -200,9 +266,9 @@ def image_from_component_values(component):
     d = [(rescale(component[3 * i]),
           rescale(component[3 * i + 1]),
           rescale(component[3 * i + 2])) for i in range(n)]
-    im = Image.new('RGB',STANDARD_SIZE)
+    im = Image.new(CONVERTER.internalMode,STANDARD_SIZE)
     im.putdata(d)
-    return im
+    return CONVERTER.unapply(im)
 
 def makeRandomDress(saveName, liked):
     randomArr = []
@@ -220,8 +286,8 @@ def reconstructKnownDresses():
     directory = "results/recreatedDresses/"
     makeFolder(directory)
     for i in range(N_DRESSES_TO_SHOW):
-        Image.open(raw_data[i][2]).save(directory + str(i) + "_original.png")
         saveName = directory + str(i)
+        Image.open(raw_data[i][2]).save(saveName + "_original.png")
         reconstruct(i, saveName)
 
 def createNewDresses():
