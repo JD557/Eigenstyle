@@ -36,9 +36,9 @@ class BwLumaConverter:
     @staticmethod
     def apply(img):
         rgb2bw = (
-            0.299, 0.587, 0.114, 0,
-            0.299, 0.587, 0.114, 0,
-            0.299, 0.587, 0.114, 0 )
+            0.2126, 0.7152, 0.0722, 0,
+            0.2126, 0.7152, 0.0722, 0,
+            0.2126, 0.7152, 0.0722, 0 )
         return img.convert("RGB", rgb2bw)
 
     @staticmethod
