@@ -1,6 +1,3 @@
-from PIL import Image
-import PIL.ImageOps
-
 class RgbConverter:
 
     internalMode = "RGB"
@@ -12,6 +9,7 @@ class RgbConverter:
     @staticmethod
     def unapply(img):
         return img
+
 
 class BwNaiveConverter:
 
@@ -29,6 +27,7 @@ class BwNaiveConverter:
     def unapply(img):
         return img
 
+
 class BwLumaConverter:
 
     internalMode = "RGB"
@@ -44,6 +43,7 @@ class BwLumaConverter:
     @staticmethod
     def unapply(img):
         return img
+
 
 class XyzConverter:
 

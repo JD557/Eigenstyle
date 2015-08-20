@@ -1,15 +1,10 @@
 from PIL import Image
 import PIL.ImageOps
-from collections import defaultdict
 from glob import glob
-from random import shuffle, seed
+from random import shuffle
 import numpy as np
-import pylab as pl
-import pandas as pd
-import re
 from sklearn.decomposition import RandomizedPCA
 from sklearn.linear_model import LogisticRegression
-import math
 import random
 import os
 from statistics import mean, median, standard_deviation, inverse_normal_cdf, interquartile_range
@@ -25,6 +20,7 @@ CONVERTER = colorspaces.BwLumaConverter()
 # If you are using a different source, change the size here
 STANDARD_SIZE = (200, 260)
 
+
 def img_to_array(filename):
     """takes a filename and turns it into a numpy array of RGB pixels"""
     img = Image.open(filename)
@@ -37,9 +33,11 @@ def img_to_array(filename):
     img_wide = img.reshape(1, shape)
     return img_wide[0]
 
+
 def makeFolder(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
+
 
 # write out each eigendress and the dresses that most and least match it
 # the file names here are chosen because of the order i wanna look at the results
@@ -54,8 +52,7 @@ def createEigendressPictures():
         img.save(directory + str(i) + "_eigendress___.png")
         reverse_img = PIL.ImageOps.invert(img)
         reverse_img.save(directory + str(i) + "_eigendress_inverted.png")
-        ranked_dresses = sorted(enumerate(X),
-               key=lambda (a,x): x[i])
+        ranked_dresses = sorted(enumerate(X), key=lambda (a,x): x[i])
         most_i = ranked_dresses[-1][0]
         least_i = ranked_dresses[0][0]
 
@@ -64,8 +61,10 @@ def createEigendressPictures():
             Image.open(raw_data[ranked_dresses[most_j][0]][2]).save(directory + str(i) + "_eigendress__most" + str(j) + ".png")
             Image.open(raw_data[ranked_dresses[j][0]][2]).save(directory + str(i) + "_eigendress_least" + str(j) + ".png")
 
+
 def indexesForImageName(imageName):
-    return [i for (i,(cd,_y,f)) in enumerate(raw_data) if imageName in f]
+    return [i for (i, (cd, _y, f)) in enumerate(raw_data) if imageName in f]
+
 
 def predictiveModeling():
     print("training a predictive model...")
@@ -80,26 +79,26 @@ def predictiveModeling():
 
         # if you wanted to use a different model, you'd specify that here
         clf = LogisticRegression(penalty='l2')
-        clf.fit(X_train,y_train)
+        clf.fit(X_train, y_train)
 
-        print "score",clf.score(X_test,y_test)
+        print "score", clf.score(X_test, y_test)
 
         # first, let's find the model score for every dress in our dataset
-        probs = zip(clf.decision_function(X),raw_data)
+        probs = zip(clf.decision_function(X), raw_data)
 
-        prettiest_liked_things = sorted(probs,key=lambda (p,(cd,g,f)): (0 if g == 'like' else 1,p))
-        prettiest_disliked_things = sorted(probs,key=lambda (p,(cd,g,f)): (0 if g == 'dislike' else 1,p))
-        ugliest_liked_things = sorted(probs,key=lambda (p,(cd,g,f)): (0 if g == 'like' else 1,-p))
-        ugliest_disliked_things = sorted(probs,key=lambda (p,(cd,g,f)): (0 if g == 'dislike' else 1,-p))
-        in_between_things = sorted(probs,key=lambda (p,(cd,g,f)): abs(p))
+        prettiest_liked_things = sorted(probs, key=lambda (p, (cd, g, f)): (0 if g == 'like' else 1, p))
+        prettiest_disliked_things = sorted(probs, key=lambda (p, (cd, g, f)): (0 if g == 'dislike' else 1, p))
+        ugliest_liked_things = sorted(probs, key=lambda (p, (cd, g, f)): (0 if g == 'like' else 1, -p))
+        ugliest_disliked_things = sorted(probs, key=lambda (p, (cd, g, f)): (0 if g == 'dislike' else 1, -p))
+        in_between_things = sorted(probs, key=lambda (p, (cd, g, f)): abs(p))
 
         # and let's look at the most and least extreme dresses
-        cd = zip(X,raw_data)
-        least_extreme_things = sorted(cd,key=lambda (x,(d,g,f)): sum([abs(c) for c in x]))
-        most_extreme_things =  sorted(cd,key=lambda (x,(d,g,f)): sum([abs(c) for c in x]),reverse=True)
+        cd = zip(X, raw_data)
+        least_extreme_things = sorted(cd, key=lambda (x, (d, g, f)): sum([abs(c) for c in x]))
+        most_extreme_things = sorted(cd, key=lambda (x, (d, g, f)): sum([abs(c) for c in x]), reverse=True)
 
-        least_interesting_things = sorted(cd,key=lambda (x,(d,g,f)): max([abs(c) for c in x]))
-        most_interesting_things =  sorted(cd,key=lambda (x,(d,g,f)): min([abs(c) for c in x]),reverse=True)
+        least_interesting_things = sorted(cd, key=lambda (x, (d, g, f)): max([abs(c) for c in x]))
+        most_interesting_things = sorted(cd, key=lambda (x, (d, g, f)): min([abs(c) for c in x]), reverse=True)
 
         directory = "results/notableDresses/"
         makeFolder(directory)
@@ -116,44 +115,45 @@ def predictiveModeling():
             Image.open(most_interesting_things[i][1][2]).save(directory + "most_interesting_" + str(i) + ".png")
 
         # and now let's look at precision-recall
-        probs = zip(clf.decision_function(X_test),raw_data[train_split:])
+        probs = zip(clf.decision_function(X_test), raw_data[train_split:])
         num_dislikes = len([c for c in y_test if c == 1])
         num_likes = len([c for c in y_test if c == 0])
-        lowest_score = round(min([p[0] for p in probs]),1) - 0.1
-        highest_score = round(max([p[0] for p in probs]),1) + 0.1
+        lowest_score = round(min([p[0] for p in probs]), 1) - 0.1
+        highest_score = round(max([p[0] for p in probs]), 1) + 0.1
         INTERVAL = 0.1
 
         # first do the likes
         score = lowest_score
         while score <= highest_score:
-            true_positives  = len([p for p in probs if p[0] <= score and p[1][1] == 'like'])
+            true_positives = len([p for p in probs if p[0] <= score and p[1][1] == 'like'])
             false_positives = len([p for p in probs if p[0] <= score and p[1][1] == 'dislike'])
             positives = true_positives + false_positives
             precision = np.float64(1.0 * true_positives) / positives
             recall = np.float64(1.0 * true_positives) / num_likes
-            print "likes",score,precision,recall
+            print "likes", score, precision, recall
             score += INTERVAL
 
         # then do the dislikes
         score = highest_score
         while score >= lowest_score:
-            true_positives  = len([p for p in probs if p[0] >= score and p[1][1] == 'dislike'])
+            true_positives = len([p for p in probs if p[0] >= score and p[1][1] == 'dislike'])
             false_positives = len([p for p in probs if p[0] >= score and p[1][1] == 'like'])
             positives = true_positives + false_positives
             precision = np.float64(1.0 * true_positives) / positives
             recall = np.float64(1.0 * true_positives) / num_dislikes
-            print "dislikes",score,precision,recall
+            print "dislikes", score, precision, recall
             score -= INTERVAL
 
         # now do both
         score = lowest_score
         while score <= highest_score:
-            likes  = len([p for p in probs if p[0] <= score and p[1][1] == 'like'])
+            likes = len([p for p in probs if p[0] <= score and p[1][1] == 'like'])
             dislikes = len([p for p in probs if p[0] <= score and p[1][1] == 'dislike'])
             print score, likes, dislikes
             score += INTERVAL
     except:
         print("the model could not be trained.")
+
 
 def showHistoryOfDress(dressName):
     index = indexesForImageName(dressName)[0]
@@ -162,9 +162,10 @@ def showHistoryOfDress(dressName):
     dress = X[index]
     origImage = raw_data[index][2]
     Image.open(origImage).save(directory + "dress_" + str(index) + "_original.png")
-    for i in range(1,len(dress)):
+    for i in range(1, len(dress)):
         reduced = dress[:i]
         construct(reduced, directory + "dress_" + str(index) + "_" + str(i))
+
 
 def bulkShowDressHistories(lo, hi):
     for index in range(lo, hi):
@@ -173,22 +174,24 @@ def bulkShowDressHistories(lo, hi):
         dress = X[index]
         origImage = raw_data[index][2]
         Image.open(origImage).save(directory + "dress_" + str(index) + "_original.png")
-        for i in range(1,len(dress)):
+        for i in range(1, len(dress)):
             reduced = dress[:i]
             construct(reduced, directory + "dress_" + str(index) + "_" + str(i))
+
 
 def reconstruct(dress_number, saveName = 'reconstruct'):
     eigenvalues = X[dress_number]
     construct(eigenvalues, saveName)
 
+
 def construct(eigenvalues, saveName = 'reconstruct'):
     components = pca.components_
-    eigenzip = zip(eigenvalues,components)
+    eigenzip = zip(eigenvalues, components)
     N = len(components[0])
-    r = [int(sum([w * c[i] for (w,c) in eigenzip]))
-                     for i in range(N)]
+    r = [int(sum([w * c[i] for (w, c) in eigenzip])) for i in range(N)]
     img = image_from_component_values(r)
     img.save(saveName + '.png')
+
 
 def image_from_component_values(component):
     """takes one of the principal components and turns it into an image"""
@@ -198,14 +201,16 @@ def image_from_component_values(component):
     divisor = hi - lo
     if divisor == 0:
         divisor = 1
+
     def rescale(x):
         return int(255 * (x - lo) / divisor)
     d = [(rescale(component[3 * i]),
           rescale(component[3 * i + 1]),
           rescale(component[3 * i + 2])) for i in range(n)]
-    im = Image.new(CONVERTER.internalMode,STANDARD_SIZE)
+    im = Image.new(CONVERTER.internalMode, STANDARD_SIZE)
     im.putdata(d)
     return CONVERTER.unapply(im)
+
 
 def makeRandomDress(saveName, liked):
     randomArr = []
@@ -218,6 +223,7 @@ def makeRandomDress(saveName, liked):
         randomArr.append(num)
     construct(randomArr, 'results/createdDresses/' + saveName)
 
+
 def reconstructKnownDresses():
     print("reconstructing dresses...")
     directory = "results/recreatedDresses/"
@@ -226,6 +232,7 @@ def reconstructKnownDresses():
         saveName = directory + str(i)
         Image.open(raw_data[i][2]).save(saveName + "_original.png")
         reconstruct(i, saveName)
+
 
 def createNewDresses():
     print("creating brand new dresses...")
@@ -236,6 +243,7 @@ def createNewDresses():
         saveNameDislike = "newDislikeDress" + str(i)
         makeRandomDress(saveNameLike, True)
         makeRandomDress(saveNameDislike, False)
+
 
 def printComponentStatistics():
     print("component statistics:\n")
@@ -249,8 +257,6 @@ def printComponentStatistics():
         print("interquartile range:       like = " + str(interquartile_range(likeComp)) + "     dislike = " + str(interquartile_range(dislikeComp)))
         print("\n")
 
-
-
 like_files = glob('images/like/*')
 dislike_files = glob('images/dislike/*')
 other_files = glob('images/other/*')
@@ -259,17 +265,16 @@ process_file = img_to_array
 
 print('processing images...')
 print('(this takes a long time if you have a lot of images)')
-raw_data = [(process_file(filename),'like',filename) for filename in like_files] + \
-           [(process_file(filename),'dislike',filename) for filename in dislike_files] + \
-           [(process_file(filename),'other',filename) for filename in other_files]
+raw_data = [(process_file(filename), 'like', filename) for filename in like_files] + \
+           [(process_file(filename), 'dislike', filename) for filename in dislike_files] + \
+           [(process_file(filename), 'other', filename) for filename in other_files]
 
 # randomly order the data
-#seed(0)
 shuffle(raw_data)
 
 # pull out the features and the labels
-data = np.array([cd for (cd,_y,f) in raw_data])
-labels = np.array([_y for (cd,_y,f) in raw_data])
+data = np.array([cd for (cd, _y, f) in raw_data])
+labels = np.array([_y for (cd, _y, f) in raw_data])
 
 print('finding principal components...')
 pca = RandomizedPCA(n_components=N_COMPONENTS, random_state=0)
@@ -293,10 +298,7 @@ predictiveModeling()
 
 reconstructKnownDresses()
 
-bulkShowDressHistories(0,1)
+bulkShowDressHistories(0, 1)
 
 createNewDresses()
-
-
-
 
