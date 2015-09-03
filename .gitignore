@@ -1,5 +1,7 @@
-images/like/Image*
-images/dislike/Image*
+images/like/*
+images/dislike/*
+images/other/*
+results/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
