@@ -23,14 +23,10 @@ STANDARD_SIZE = (200, 260)
 
 def img_to_array(filename):
     """takes a filename and turns it into a numpy array of RGB pixels"""
-    img = Image.open(filename)
-    img = img.resize(STANDARD_SIZE)
-    img = CONVERTER.apply(img)
-    img = list(img.getdata())
-    img = map(list, img)
-    img = np.array(img)
-    shape = img.shape[0] * img.shape[1]
-    img_wide = img.reshape(1, shape)
+    rawImg = Image.open(filename).resize(STANDARD_SIZE)
+    imgData = np.array(map(list, list(CONVERTER.apply(rawImg).getdata())))
+    shape = imgData.shape[0] * imgData.shape[1]
+    img_wide = imgData.reshape(1, shape)
     return img_wide[0]
 
 
