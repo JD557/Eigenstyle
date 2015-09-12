@@ -1,9 +1,6 @@
 from PIL import Image
 import PIL.ImageOps
-from glob import glob
-from random import shuffle
 import numpy as np
-from sklearn.decomposition import RandomizedPCA
 from sklearn.linear_model import LogisticRegression
 import random
 import os
@@ -20,6 +17,8 @@ CONVERTER = colorspaces.BwLumaConverter()
 # If you are using a different source, change the size here
 STANDARD_SIZE = (200, 260)
 
+def numComponents(pca):
+    return min(N_COMPONENTS, len(pca.components_))
 
 def img_to_array(filename):
     """takes a filename and turns it into a numpy array of RGB pixels"""
@@ -38,11 +37,11 @@ def makeFolder(directory):
 # write out each eigendress and the dresses that most and least match it
 # the file names here are chosen because of the order i wanna look at the results
 # (when displayed alphabetically in finder)
-def createEigendressPictures(pca):
+def createEigendressPictures(pca, X, raw_data):
     print("creating eigendress pictures")
     directory = "results/eigendresses/"
     makeFolder(directory)
-    for i in range(min(N_COMPONENTS_TO_SHOW, numComponents)):
+    for i in range(min(N_COMPONENTS_TO_SHOW, numComponents(pca))):
         component = pca.components_[i]
         img = image_from_component_values(component)
         img.save(directory + str(i) + "_eigendress___.png")
@@ -62,7 +61,7 @@ def indexesForImageName(imageName):
     return [i for (i, (cd, _y, f)) in enumerate(raw_data) if imageName in f]
 
 
-def predictiveModeling():
+def predictiveModeling(pca, data, X, y, raw_data):
     print("training a predictive model...")
     try:
         # split the data into a training set and a test set
@@ -99,7 +98,7 @@ def predictiveModeling():
         directory = "results/notableDresses/"
         makeFolder(directory)
 
-        for i in range(min(N_COMPONENTS_TO_SHOW, numComponents)):
+        for i in range(min(N_COMPONENTS_TO_SHOW, numComponents(pca))):
             Image.open(prettiest_liked_things[i][1][2]).save(directory + "prettiest_pretty_" + str(i) + ".png")
             Image.open(prettiest_disliked_things[i][1][2]).save(directory + "prettiest_ugly_" + str(i) + ".png")
             Image.open(ugliest_liked_things[i][1][2]).save(directory + "ugliest_pretty_" + str(i) + ".png")
@@ -151,7 +150,7 @@ def predictiveModeling():
         print("the model could not be trained.")
 
 
-def showHistoryOfDress(dressName):
+def showHistoryOfDress(dressName, pca, raw_data, X):
     index = indexesForImageName(dressName)[0]
     directory = "results/history/dress" + str(index) + "/"
     makeFolder(directory)
@@ -163,7 +162,7 @@ def showHistoryOfDress(dressName):
         construct(reduced, pca, directory + "dress_" + str(index) + "_" + str(i))
 
 
-def bulkShowDressHistories(lo, hi, pca):
+def bulkShowDressHistories(lo, hi, pca, X, raw_data):
     for index in range(lo, hi):
         directory = "results/history/dress" + str(index) + "/"
         makeFolder(directory)
@@ -175,7 +174,7 @@ def bulkShowDressHistories(lo, hi, pca):
             construct(reduced, pca, directory + "dress_" + str(index) + "_" + str(i))
 
 
-def reconstruct(dress_number, pca, saveName = 'reconstruct'):
+def reconstruct(dress_number, pca, X, saveName = 'reconstruct'):
     eigenvalues = X[dress_number]
     construct(eigenvalues, pca, saveName)
 
@@ -208,7 +207,7 @@ def image_from_component_values(component):
     return CONVERTER.unapply(im)
 
 
-def makeRandomDress(saveName, liked, pca):
+def makeRandomDress(saveName, liked, pca, likesByComponent, dislikesByComponent):
     randomArr = []
     base = likesByComponent if liked else dislikesByComponent
     for c in base[:100]:
@@ -220,30 +219,30 @@ def makeRandomDress(saveName, liked, pca):
     construct(randomArr, pca,'results/createdDresses/' + saveName)
 
 
-def reconstructKnownDresses(pca):
+def reconstructKnownDresses(pca, X, raw_data):
     print("reconstructing dresses...")
     directory = "results/recreatedDresses/"
     makeFolder(directory)
     for i in range(N_DRESSES_TO_SHOW):
         saveName = directory + str(i)
         Image.open(raw_data[i][2]).save(saveName + "_original.png")
-        reconstruct(i, pca, saveName)
+        reconstruct(i, pca, X, saveName)
 
 
-def createNewDresses(pca):
+def createNewDresses(pca, likesByComponent, dislikesByComponent):
     print("creating brand new dresses...")
     directory = "results/createdDresses/"
     makeFolder(directory)
     for i in range(N_NEW_DRESSES_TO_CREATE):
         saveNameLike = "newLikeDress" + str(i)
         saveNameDislike = "newDislikeDress" + str(i)
-        makeRandomDress(saveNameLike, True, pca)
-        makeRandomDress(saveNameDislike, False, pca)
+        makeRandomDress(saveNameLike, True, pca, likesByComponent, dislikesByComponent)
+        makeRandomDress(saveNameDislike, False, pca, likesByComponent, dislikesByComponent)
 
 
-def printComponentStatistics():
+def printComponentStatistics(pca, likesByComponent, dislikesByComponent):
     print("component statistics:\n")
-    for i in range(min(N_COMPONENTS_TO_SHOW, numComponents, len(likesByComponent), len(dislikesByComponent))):
+    for i in range(min(N_COMPONENTS_TO_SHOW, numComponents(pca), len(likesByComponent), len(dislikesByComponent))):
         print("component " + str(i) + ":")
         likeComp = likesByComponent[i]
         dislikeComp = dislikesByComponent[i]
@@ -253,48 +252,4 @@ def printComponentStatistics():
         print("interquartile range:       like = " + str(interquartile_range(likeComp)) + "     dislike = " + str(interquartile_range(dislikeComp)))
         print("\n")
 
-like_files = glob('images/like/*')
-dislike_files = glob('images/dislike/*')
-other_files = glob('images/other/*')
-
-process_file = img_to_array
-
-print('processing images...')
-print('(this takes a long time if you have a lot of images)')
-raw_data = [(process_file(filename), 'like', filename) for filename in like_files] + \
-           [(process_file(filename), 'dislike', filename) for filename in dislike_files] + \
-           [(process_file(filename), 'other', filename) for filename in other_files]
-
-# randomly order the data
-shuffle(raw_data)
-
-# pull out the features and the labels
-data = np.array([cd for (cd, _y, f) in raw_data])
-labels = np.array([_y for (cd, _y, f) in raw_data])
-
-print('finding principal components...')
-_pca = RandomizedPCA(n_components=N_COMPONENTS, random_state=0)
-X = _pca.fit_transform(data)
-y = [1 if label == 'dislike' else 0 for label in labels]
-
-zipped = zip(X, raw_data)
-likes = [x[0] for x in zipped if x[1][1] == "like"]
-dislikes = [x[0] for x in zipped if x[1][1] == "dislike"]
-
-likesByComponent = zip(*likes)
-dislikesByComponent = zip(*dislikes)
-allByComponent = zip(*X)
-numComponents = min(N_COMPONENTS, len(_pca.components_))
-
-printComponentStatistics()
-
-createEigendressPictures(_pca)
-
-predictiveModeling()
-
-reconstructKnownDresses(_pca)
-
-bulkShowDressHistories(0, 1, _pca)
-
-createNewDresses(_pca)
 
