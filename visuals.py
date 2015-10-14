@@ -34,9 +34,6 @@ def makeFolder(directory):
         os.makedirs(directory)
 
 
-# write out each eigendress and the dresses that most and least match it
-# the file names here are chosen because of the order i wanna look at the results
-# (when displayed alphabetically in finder)
 def createEigendressPictures(pca, X, raw_data):
     print("creating eigendress pictures")
     directory = "results/eigendresses/"
@@ -159,7 +156,8 @@ def showHistoryOfDress(dressName, pca, raw_data, X):
     Image.open(origImage).save(directory + "dress_" + str(index) + "_original.png")
     for i in range(1, len(dress)):
         reduced = dress[:i]
-        construct(reduced, pca, directory + "dress_" + str(index) + "_" + str(i))
+        img = construct(reduced, pca)
+        img.save(directory + "dress_" + str(index) + "_" + str(i) + ".png")
 
 
 def bulkShowDressHistories(lo, hi, pca, X, raw_data):
@@ -171,21 +169,23 @@ def bulkShowDressHistories(lo, hi, pca, X, raw_data):
         Image.open(origImage).save(directory + "dress_" + str(index) + "_original.png")
         for i in range(1, len(dress)):
             reduced = dress[:i]
-            construct(reduced, pca, directory + "dress_" + str(index) + "_" + str(i))
+            img = construct(reduced, pca)
+            img.save(directory + "dress_" + str(index) + "_" + str(i) + ".png")
 
 
-def reconstruct(dress_number, pca, X, saveName = 'reconstruct'):
+def reconstruct(dress_number, pca, X):
     eigenvalues = X[dress_number]
-    construct(eigenvalues, pca, saveName)
+    img = construct(eigenvalues, pca)
+    return img
 
 
-def construct(eigenvalues, pca, saveName = 'reconstruct'):
+def construct(eigenvalues, pca):
     components = pca.components_
     eigenzip = zip(eigenvalues, components)
     N = len(components[0])
     r = [int(sum([w * c[i] for (w, c) in eigenzip])) for i in range(N)]
     img = image_from_component_values(r)
-    img.save(saveName + '.png')
+    return img
 
 
 def image_from_component_values(component):
@@ -207,7 +207,7 @@ def image_from_component_values(component):
     return CONVERTER.unapply(im)
 
 
-def makeRandomDress(saveName, liked, pca, likesByComponent, dislikesByComponent):
+def makeRandomDress(liked, pca, likesByComponent, dislikesByComponent):
     randomArr = []
     base = likesByComponent if liked else dislikesByComponent
     for c in base[:100]:
@@ -216,7 +216,8 @@ def makeRandomDress(saveName, liked, pca, likesByComponent, dislikesByComponent)
         p = random.uniform(0.0, 1.0)
         num = inverse_normal_cdf(p, mu, sigma)
         randomArr.append(num)
-    construct(randomArr, pca,'results/createdDresses/' + saveName)
+    img = construct(randomArr, pca)
+    return img
 
 
 def reconstructKnownDresses(pca, X, raw_data):
@@ -226,7 +227,8 @@ def reconstructKnownDresses(pca, X, raw_data):
     for i in range(N_DRESSES_TO_SHOW):
         saveName = directory + str(i)
         Image.open(raw_data[i][2]).save(saveName + "_original.png")
-        reconstruct(i, pca, X, saveName)
+        img = reconstruct(i, pca, X)
+        img.save(saveName + '.png')
 
 
 def createNewDresses(pca, likesByComponent, dislikesByComponent):
@@ -236,8 +238,10 @@ def createNewDresses(pca, likesByComponent, dislikesByComponent):
     for i in range(N_NEW_DRESSES_TO_CREATE):
         saveNameLike = "newLikeDress" + str(i)
         saveNameDislike = "newDislikeDress" + str(i)
-        makeRandomDress(saveNameLike, True, pca, likesByComponent, dislikesByComponent)
-        makeRandomDress(saveNameDislike, False, pca, likesByComponent, dislikesByComponent)
+        randLike = makeRandomDress(True, pca, likesByComponent, dislikesByComponent)
+        randLike.save('results/createdDresses/' + saveNameLike + '.png')
+        randDislike = makeRandomDress(False, pca, likesByComponent, dislikesByComponent)
+        randDislike.save('results/createdDresses/' + saveNameDislike + '.png')
 
 
 def printComponentStatistics(pca, likesByComponent, dislikesByComponent):
